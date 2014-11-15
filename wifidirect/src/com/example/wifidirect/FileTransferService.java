@@ -112,7 +112,14 @@ public class FileTransferService extends IntentService implements Serializable {
 		
 				@SuppressWarnings("unchecked")
 				HashMap<String, File> clientNamesAndFiles = (HashMap<String, File>) ois.readObject();
-				Log.d(WiFiDirectActivity.TAG, "Received :"+ clientNamesAndFiles.size());
+				Log.d(WiFiDirectActivity.TAG, "Received map size :"+ clientNamesAndFiles.size());
+				
+				// Get the merged File
+				File mergedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/mergedFile.mp4");
+				Log.d(WiFiDirectActivity.TAG, "File path :" + mergedFile.getAbsolutePath());
+				Util.mergeFilesFromMap(clientNamesAndFiles, mergedFile);
+				Log.d(WiFiDirectActivity.TAG, "Merged file size at Server :" + mergedFile.length());
+				
 			} catch (Exception e) {
 				Log.e(WiFiDirectActivity.TAG, e.getMessage());
 			} finally {

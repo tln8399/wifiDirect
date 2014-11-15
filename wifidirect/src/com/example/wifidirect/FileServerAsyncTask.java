@@ -11,6 +11,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 import android.content.Context;
 import android.content.Intent;
@@ -87,11 +89,15 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			//Add file in map with client name
 			clientNamesAndFiles.put(clientName, clientFile);
 			
-	//		File serverPart = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-	//		                       + "/newVideo.mp4");
-	//		Log.d(WiFiDirectActivity.TAG, "File path :" + serverPart.getAbsolutePath());
+			File[] sortedMap = getSortedMap(clientNamesAndFiles);
 			oos.writeObject(clientNamesAndFiles);
 			oos.flush();
+			
+			// Get the merged File
+			File mergedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/mergedFile.mp4");
+			Log.d(WiFiDirectActivity.TAG, "File path :" + mergedFile.getAbsolutePath());
+			Util.mergeFilesFromMap(clientNamesAndFiles, mergedFile);
+			Log.d(WiFiDirectActivity.TAG, "Merged file size at Server :" + mergedFile.length());
 			
 			return null;
 		} catch (IOException e) {
@@ -114,6 +120,22 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			}
 		}
 		return null;
+	}
+
+	private File[] getSortedMap(HashMap<String, File> filesMap) {
+		// TODO Auto-generated method stub
+		File[] files = new File[10]; // Max device number 10
+		int i = 0;
+		//Sort map to merge file
+		Map<String, File> treeMap = new TreeMap<String, File>(filesMap);
+		for (String str : treeMap.keySet()) {
+			char[] array = str.toCharArray();
+			int value = Character.getNumericValue(array[1]);
+		    Log.d(WiFiDirectActivity.TAG, str + " " + value) ;
+		    files[value] = treeMap.get(str);
+		    i++;
+		}
+		return files;
 	}
 
 	/**

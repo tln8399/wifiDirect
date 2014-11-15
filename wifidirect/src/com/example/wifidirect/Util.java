@@ -15,10 +15,14 @@ import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.http.client.ClientProtocolException;
 
 //import com.googlecode.mp4parser.authoring.Movie;
+
+
 
 
 
@@ -183,6 +187,40 @@ public class Util implements Serializable {
 			}
 		}
 		Log.d(WiFiDirectActivity.TAG, "Merged file size :" + mergedFile.length());
+		try {
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public static void mergeFilesFromMap(HashMap<String, File> filesMap, File mergedFile) throws FileNotFoundException {
+		
+		FileOutputStream out = new FileOutputStream(mergedFile);
+		File[] files = new File[10]; // Max device number 10
+		int i = 0;
+		//Sort map to merge file
+		Map<String, File> treeMap = new TreeMap<String, File>(filesMap);
+		for (String str : treeMap.keySet()) {
+		    System.out.println(str);
+		    File f = treeMap.get(str);
+		
+		    Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName());
+			FileInputStream inputStream = new FileInputStream(f);
+			byte buf[] = new byte[1024];
+			int len;
+			try {
+				while ((len = inputStream.read(buf)) != -1) {
+					out.write(buf, 0, len);
+				}
+				inputStream.close();
+			} catch (IOException e) {
+				Log.d(WiFiDirectActivity.TAG,"Merge error.");
+			}
+		}
+		
+		Log.d(WiFiDirectActivity.TAG, "Merged file size :" + mergedFile.length());
+		
 		try {
 			out.close();
 		} catch (IOException e) {
