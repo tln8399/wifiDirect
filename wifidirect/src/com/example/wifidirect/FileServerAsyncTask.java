@@ -10,6 +10,7 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 
 import android.content.Context;
 import android.content.Intent;
@@ -28,6 +29,8 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	private Context context;
 	private TextView statusText;
 	public Util utilObject;
+	
+	private HashMap<String, File> clientNamesAndFiles = new HashMap<String, File>();
 	/**
 	 * @param context
 	 * @param statusText
@@ -58,31 +61,37 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			//Step 2 - Receive url request text
 			oos = new ObjectOutputStream(client.getOutputStream());
 			ois = new ObjectInputStream(client.getInputStream());
-			String strRequest = (String) ois.readObject();
-			Log.d(WiFiDirectActivity.TAG, "Request received from client :" + strRequest);
+			String clientName = (String) ois.readObject();
+			Log.d(WiFiDirectActivity.TAG, "Request received from client :" + clientName);
 						
 			oos.writeObject(utilObject.getURL());
 			oos.flush();
 			
 			utilObject.setRangeForDevices();
+			File serverPart = getServerPart(utilObject);
+			clientNamesAndFiles.put("D4", serverPart);
 			oos.writeObject(utilObject.rangeMap);
 			oos.flush();
 			
 			Thread.sleep(1000);
 			
-		//	File clientPart = (File) ois.readObject();
-			File part2 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                    + "/newVideo.mp4");
-			InputStream inputStream = client.getInputStream();
-			OutputStream outputStream = new FileOutputStream(part2);
+			File clientPart = (File) ois.readObject();
+			File clientFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    + "/clientFile.mp4");
+			InputStream inputStream = new FileInputStream(clientPart);
+			OutputStream outputStream = new FileOutputStream(clientFile);
 			DeviceDetailFragment.copyFile(inputStream, outputStream);
-			Log.d(WiFiDirectActivity.TAG, "Received file size :" + part2.length());
+			Log.d(WiFiDirectActivity.TAG, "Received file size :" + clientFile.length());
+			inputStream.close();
+			outputStream.close();
+			//Add file in map with client name
+			clientNamesAndFiles.put(clientName, clientFile);
 			
 	//		File serverPart = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 	//		                       + "/newVideo.mp4");
 	//		Log.d(WiFiDirectActivity.TAG, "File path :" + serverPart.getAbsolutePath());
-	//		oos.writeObject(serverPart);
-	//		oos.flush();
+			oos.writeObject(clientNamesAndFiles);
+			oos.flush();
 			
 			return null;
 		} catch (IOException e) {
@@ -105,6 +114,20 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Method downloads the server's video part and adds to the map
+	 * @param utilObject2 - object which has range parameters
+	 * @return
+	 */
+	private File getServerPart(Util utilObject2) {
+		HashMap<String, String> rangeMap = utilObject2.getRangeMap();
+		String serverRange = (String) rangeMap.get("D4");
+		Log.d(WiFiDirectActivity.TAG, serverRange);
+		File serverPart = utilObject2.downloadVideo(serverRange, utilObject2.getURL());
+		Log.d(WiFiDirectActivity.TAG, "Downloaded file size at Server :" + serverPart.length());
+		return serverPart;
 	}
 
 	/*

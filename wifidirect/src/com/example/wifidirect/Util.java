@@ -3,6 +3,8 @@ package com.example.wifidirect;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,11 +13,14 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.http.client.ClientProtocolException;
 
 //import com.googlecode.mp4parser.authoring.Movie;
+
+
 
 
 
@@ -92,6 +97,10 @@ public class Util implements Serializable {
 	public URL getURL() {
 		return url;
 	}
+	
+	public HashMap<String, String> getRangeMap(){
+		return rangeMap;
+	}
 
 	public File downloadVideo(String range, URL url) {
 		
@@ -102,14 +111,6 @@ public class Util implements Serializable {
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("GET");
 			int lengthOfFile = 0;
-			/*
-			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-				lengthOfFile = connection.getContentLength();
-				Log.d("MyMsgs", "Length of file :" + lengthOfFile);
-				connection.disconnect();
-
-			}
-			*/
 			/************** Logic to save a video file *********************************************/
 
 			int start = lengthOfFile / 2;
@@ -119,18 +120,15 @@ public class Util implements Serializable {
 			connection.setDoInput(true);
 			connection.setDoOutput(true);
 
-			Log.d("MyMsgs", " HTTP_PARTIAL Code: "
-					+ HttpURLConnection.HTTP_PARTIAL + " -  Response Code: "
+			Log.d(WiFiDirectActivity.TAG, " HTTP_PARTIAL Code: " + HttpURLConnection.HTTP_PARTIAL + " -  Response Code: "
 					+ connection.getResponseCode());
-			Log.d("MyMsgs", "Connected to URL.");
+			Log.d(WiFiDirectActivity.TAG, "Connected to URL.");
 
 			// set the path where we want to save the file
 			File SDCardRoot = Environment
 					.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 			Log.d("MyMsgs", "file path :" + SDCardRoot.getAbsolutePath());
 			// create a new file, to save the downloaded file
-			
-
 			outFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 							+ "/part2.mp4");
 			// If file does not exists, then create it
@@ -138,7 +136,6 @@ public class Util implements Serializable {
 				outFile.createNewFile();
 				outFile.canWrite();
 			}
-
 			final int DOWNLOAD_BUFFER_SIZE = 1024;
 			FileOutputStream fileStream = new FileOutputStream(outFile.getAbsolutePath());
 			BufferedOutputStream outStream = new BufferedOutputStream(fileStream, DOWNLOAD_BUFFER_SIZE);
@@ -147,33 +144,50 @@ public class Util implements Serializable {
 			byte[] buffer = new byte[1024];
 			int len1 = 0;
 			int countInKB = 0;
-			Log.d("MyMsgs", " " + connection.getHeaderFields());
-			int fileinKB = lengthOfFile / 1024;
-			int devidedSize = fileinKB / 10;
-			int count = 0;
-			Log.d("MyMsgs",	"Get Content-Length :" + connection.getHeaderField("Content-Length"));
+			Log.d(WiFiDirectActivity.TAG, " " + connection.getHeaderFields());
+			Log.d(WiFiDirectActivity.TAG,	"Get Content-Length :" + connection.getHeaderField("Content-Length"));
 			int expLength = Integer.parseInt(connection.getHeaderField("Content-Length"));
 			while ((len1 = inStream.read(buffer, 0, 1024)) > 0
 					&& countInKB < expLength) {
 				fileStream.write(buffer, 0, len1);
-
 				countInKB += len1;
-				count++;
 			}
 			fileStream.close();
-			Log.d("MyMsgs", "Output file size :" + outFile.length());
+			Log.d(WiFiDirectActivity.TAG, "Output file size :" + outFile.length());
 			//return outFile;
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
-			Log.d("MyMsgs", "Exception 2");
+			Log.d(WiFiDirectActivity.TAG, "Exception 2");
 		} catch (IOException e) {
 			e.printStackTrace();
-			Log.d("MyMsgs", "Exception 3");
-
-		} finally {
-
+			Log.d(WiFiDirectActivity.TAG, "Exception 3");
 		}
 		return outFile;
+	}
+	
+	public static void mergeFiles(ArrayList<File> files, File mergedFile) throws FileNotFoundException {
+		 
+		FileOutputStream out = new FileOutputStream(mergedFile);
+		for (File f : files) {
+			Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName());
+			FileInputStream inputStream = new FileInputStream(f);
+			byte buf[] = new byte[1024];
+			int len;
+			try {
+				while ((len = inputStream.read(buf)) != -1) {
+					out.write(buf, 0, len);
+				}
+				inputStream.close();
+			} catch (IOException e) {
+				Log.d(WiFiDirectActivity.TAG,"Merge error.");
+			}
+		}
+		Log.d(WiFiDirectActivity.TAG, "Merged file size :" + mergedFile.length());
+		try {
+			out.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	

@@ -46,7 +46,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
     ProgressDialog progressDialog = null;
     View mContentView = null;
     private WifiP2pDevice device;
-    
+    private String deviceName;
     public DeviceListFragment () {
     	
     }
@@ -71,6 +71,10 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         return device;
     }
 
+    public String getDeviceName() {
+    	 return device.deviceName;
+    }
+    
     private static String getDeviceStatus(int deviceStatus) {
         Log.d(WiFiDirectActivity.TAG, "Peer status :" + deviceStatus);
         switch (deviceStatus) {
@@ -154,6 +158,8 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         view.setText(device.deviceName);
         view = (TextView) mContentView.findViewById(R.id.my_status);
         view.setText(getDeviceStatus(device.status));
+        //Set the device name in client object.
+        FileTransferService.setDevicename(device.deviceName);
     }
 
     @Override

@@ -237,7 +237,7 @@ public class DeviceDetailFragment extends Fragment implements
 		view = (TextView) mContentView.findViewById(R.id.device_info);
 		view.setText(device.toString());
 		// Set the device name in in FileTransferService object
-		FileTransferService.setDevicename(device.deviceName.toString());
+		//FileTransferService.setDevicename(device.deviceName.toString());
 	}
 
 	/**
