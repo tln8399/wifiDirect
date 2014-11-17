@@ -2,12 +2,15 @@ package com.example.wifidirect;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -15,6 +18,7 @@ import java.net.ProtocolException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -29,6 +33,13 @@ import org.apache.http.client.ClientProtocolException;
 
 
 
+
+
+
+
+
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Environment;
 import android.util.Log;
 
@@ -106,7 +117,7 @@ public class Util implements Serializable {
 		return rangeMap;
 	}
 
-	public File downloadVideo(String range, URL url) {
+	public File downloadVideo(String range, URL url, String device_name) {
 		
 		File outFile = null;
 		try {
@@ -131,10 +142,10 @@ public class Util implements Serializable {
 			// set the path where we want to save the file
 			File SDCardRoot = Environment
 					.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-			Log.d("MyMsgs", "file path :" + SDCardRoot.getAbsolutePath());
+	//		Log.d("MyMsgs", "file path :" + SDCardRoot.getAbsolutePath());
 			// create a new file, to save the downloaded file
 			outFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-							+ "/part2.mp4");
+							   + "/"+ device_name +"part");
 			// If file does not exists, then create it
 			if (!outFile.exists()) {
 				outFile.createNewFile();
@@ -148,8 +159,8 @@ public class Util implements Serializable {
 			byte[] buffer = new byte[1024];
 			int len1 = 0;
 			int countInKB = 0;
-			Log.d(WiFiDirectActivity.TAG, " " + connection.getHeaderFields());
-			Log.d(WiFiDirectActivity.TAG,	"Get Content-Length :" + connection.getHeaderField("Content-Length"));
+	//		Log.d(WiFiDirectActivity.TAG, " " + connection.getHeaderFields());
+	//		Log.d(WiFiDirectActivity.TAG,	"Get Content-Length :" + connection.getHeaderField("Content-Length"));
 			int expLength = Integer.parseInt(connection.getHeaderField("Content-Length"));
 			while ((len1 = inStream.read(buffer, 0, 1024)) > 0
 					&& countInKB < expLength) {
@@ -196,7 +207,7 @@ public class Util implements Serializable {
 	
 	public static void mergeFilesFromMap(HashMap<String, File> filesMap, File mergedFile) throws FileNotFoundException {
 		
-		FileOutputStream out = new FileOutputStream(mergedFile);
+		OutputStream out = new FileOutputStream(mergedFile);
 		File[] files = new File[10]; // Max device number 10
 		int i = 0;
 		//Sort map to merge file
@@ -205,8 +216,8 @@ public class Util implements Serializable {
 		    System.out.println(str);
 		    File f = treeMap.get(str);
 		
-		    Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName());
-			FileInputStream inputStream = new FileInputStream(f);
+		    Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName() + " of Size - " + f.length());
+			InputStream inputStream = new FileInputStream(f);
 			byte buf[] = new byte[1024];
 			int len;
 			try {
@@ -227,6 +238,51 @@ public class Util implements Serializable {
 			e.printStackTrace();
 		}
 	}
+
 	
+	/**
+	 * Method to get the file contents into byte[] array
+	 */
+	public static byte[] readFile(File file) throws IOException {
+        // Open file
+        RandomAccessFile f = new RandomAccessFile(file, "r");
+        try {
+            // Get and check length
+            long longlength = f.length();
+            int length = (int) longlength;
+            if (length != longlength)
+                throw new IOException("File size >= 2 GB");
+            // Read file and return data
+            byte[] data = new byte[length];
+            f.readFully(data);
+            return data;
+        } finally {
+            f.close();
+        }
+    }
+	
+	/**
+	 * Method to merge the contents of all devices
+	 */
+	public static byte[] mergeContents(Map<String, byte[]> contentMap) {
+		
+		int length = 0;
+		for(String str : contentMap.keySet()) {
+			Log.d(WiFiDirectActivity.TAG, "" + str + " part length = " + (contentMap.get(str)).length);
+			length = length + (contentMap.get(str)).length;
+		}
+		Log.d(WiFiDirectActivity.TAG, "Total length should be :" + length);
+		byte[] mergedByteArray = new byte[length];
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		for(String str : contentMap.keySet()) {
+			try {
+				outputStream.write(contentMap.get(str));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	    Log.d(WiFiDirectActivity.TAG, "Merged byte array length :" + outputStream.toByteArray().length);
+		return outputStream.toByteArray();
+	}
 	
 }

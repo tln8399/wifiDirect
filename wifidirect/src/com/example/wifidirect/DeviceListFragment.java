@@ -47,10 +47,15 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
     View mContentView = null;
     private WifiP2pDevice device;
     private String deviceName;
-    public DeviceListFragment () {
+    
+    public DeviceListFragment() {
     	
     }
-
+    
+    public List<WifiP2pDevice> getPeers() {
+    	return peers;
+    }
+    
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -213,5 +218,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
 
         void disconnect();
     }
+
+	
 
 }
