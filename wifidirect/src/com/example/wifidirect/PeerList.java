@@ -12,14 +12,13 @@ public class PeerList {
 	int numberOfPeers;
 	public static List<WifiP2pDevice> peers = new ArrayList<WifiP2pDevice>();
 	public static HashMap<String, Boolean> peersMap = new HashMap<String, Boolean>();
-	public static DeviceListFragment deviceListObject = new DeviceListFragment();
 	
 	public PeerList() {
 		numberOfPeers = 0;
 	}
 	
 	public static List<WifiP2pDevice> getPeerList() {
-		peers =  deviceListObject.getPeers();
+		peers =  DeviceListFragment.peerArrayList;
 		return peers;
 	}
 

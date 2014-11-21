@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.util.HashMap;
@@ -41,6 +42,8 @@ public class FileTransferService extends IntentService implements Serializable {
 	public static final String EXTRAS_GROUP_OWNER_PORT = "go_port";
 	public static String device_name;
 	private TextView client_status;
+	
+	private static Boolean isFileSentToServer = false;
 	
 	public FileTransferService(String name) {
 		super(name);
@@ -78,39 +81,52 @@ public class FileTransferService extends IntentService implements Serializable {
 				Log.d(WiFiDirectActivity.TAG, "Opening client socket - " + device_name);
 				//socket.bind(null);
 				socket.connect((new InetSocketAddress(host, port)));
-
+				Log.d(WiFiDirectActivity.TAG, "Local address " + socket.getLocalAddress() + "  Port :" + socket.getLocalPort());
+				Device device = new Device(device_name, 
+										   socket.getLocalAddress(), 
+										   socket.getLocalPort());
 				Log.d(WiFiDirectActivity.TAG,"Client socket - " + socket.isConnected());
 				ois = new ObjectInputStream(socket.getInputStream());
 				oos = new ObjectOutputStream(socket.getOutputStream());
 				
-				//Step 1 - Send request to Server
-				oos.writeObject(device_name);
-				oos.flush();
-				Log.d(WiFiDirectActivity.TAG, "Request sent");
-				URL utilObjectUrl = (URL) ois.readObject();
-				if(utilObjectUrl != null) {
-					Log.d(WiFiDirectActivity.TAG, "URL received :" + utilObjectUrl.toString());
-					Log.d(WiFiDirectActivity.TAG, "Content Length " + utilObj.getUrlContentLength(utilObjectUrl));
-					Log.d(WiFiDirectActivity.TAG, "Device Name : " + device_name);
-					//Log.d(WiFiDirectActivity.TAG, "URL content length :" + utilObject.getUrlContentLength(utilObject.getURL()));
-				}
-				else {
-					Log.d(WiFiDirectActivity.TAG, "URL object received is null.");
-				}
-				
-				HashMap rangeMap = (HashMap) ois.readObject();
-				String d2Range = (String) rangeMap.get(device_name);
-				Log.d(WiFiDirectActivity.TAG, d2Range);
-								
-				File toBeSend = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
-				Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
-				Thread.sleep(1000);
-				// call method to get content of file into byte[] array  
-				byte[] content = Util.readFile(toBeSend);
-				oos.writeObject(content);
-				oos.flush();
-				
+			//	if(!isFileSentToServer){
+					//Step 1 - Send request to Server
+					oos.writeObject(device);
+					oos.flush();
+					Log.d(WiFiDirectActivity.TAG, "Request sent");
+					URL utilObjectUrl = (URL) ois.readObject();
+					if(utilObjectUrl != null) {
+						Log.d(WiFiDirectActivity.TAG, "URL received :" + utilObjectUrl.toString());
+						Log.d(WiFiDirectActivity.TAG, "Content Length " + utilObj.getUrlContentLength(utilObjectUrl));
+						Log.d(WiFiDirectActivity.TAG, "Device Name : " + device_name);
+						//Log.d(WiFiDirectActivity.TAG, "URL content length :" + utilObject.getUrlContentLength(utilObject.getURL()));
+					}
+					else {
+						Log.d(WiFiDirectActivity.TAG, "URL object received is null.");
+					}
+					
+					HashMap rangeMap = (HashMap) ois.readObject();
+					String d2Range = (String) rangeMap.get(device_name);
+					Log.d(WiFiDirectActivity.TAG, d2Range);
+									
+					File toBeSend = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
+					Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
+					Thread.sleep(1000);
+					// call method to get content of file into byte[] array  
+					byte[] content = Util.readFile(toBeSend);
+					oos.writeObject(content);
+					oos.flush();		
+					isFileSentToServer = true;
+					oos.close();
+					ois.close();
+					socket.close();
+			//	}
 		
+				/*Open new socket to get the list of parts from server */
+				ServerSocket inputSocket = new ServerSocket(8988);
+				Socket tempSocket = inputSocket.accept();
+				ois = new ObjectInputStream(tempSocket.getInputStream());
+				oos = new ObjectOutputStream(tempSocket.getOutputStream());
 				@SuppressWarnings("unchecked")
 				Map<String, byte[]> clientNamesAndFileContent = (Map<String, byte[]>) ois.readObject();
 				Log.d(WiFiDirectActivity.TAG, "Received map size :"+ clientNamesAndFileContent.size());
@@ -118,12 +134,9 @@ public class FileTransferService extends IntentService implements Serializable {
 				for(String str : clientNamesAndFileContent.keySet()) {
 					Log.d(WiFiDirectActivity.TAG, str + " " + str.charAt(1));
 				}
-				// Save files from map to memory; need to do this for merge operation
-//				saveFilesFromMap(clientNamesAndFiles);
 				
 				// Get the merged File
 				File mergedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/mergedFile.mp4");
-				Log.d(WiFiDirectActivity.TAG, "File path :" + mergedFile.getAbsolutePath());
 				byte[] mergedByteArray = Util.mergeContents(clientNamesAndFileContent);
 				Log.d(WiFiDirectActivity.TAG, "Merged byte array size at client :" + mergedByteArray.length);
 				OutputStream outputStream = new FileOutputStream(mergedFile);

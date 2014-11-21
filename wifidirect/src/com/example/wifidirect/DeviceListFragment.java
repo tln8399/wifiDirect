@@ -48,6 +48,8 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
     private WifiP2pDevice device;
     private String deviceName;
     
+    public static List<WifiP2pDevice> peerArrayList = new ArrayList<WifiP2pDevice>();
+    
     public DeviceListFragment() {
     	
     }
@@ -180,6 +182,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
             return;
         }
 
+        peerArrayList = peers;
     }
 
     public void clearPeers() {

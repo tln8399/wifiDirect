@@ -85,7 +85,7 @@ public class Util implements Serializable {
 		return lengthOfFile;
 	}
 	
-	public void setRangeForDevices() {
+	public void setRangeForDevices(int numberOfDevices) {
 		URL url = getURL();
 		long contentLength = getUrlContentLength(url);
 		
@@ -140,8 +140,7 @@ public class Util implements Serializable {
 			Log.d(WiFiDirectActivity.TAG, "Connected to URL.");
 
 			// set the path where we want to save the file
-			File SDCardRoot = Environment
-					.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+			File SDCardRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 	//		Log.d("MyMsgs", "file path :" + SDCardRoot.getAbsolutePath());
 			// create a new file, to save the downloaded file
 			outFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -179,66 +178,6 @@ public class Util implements Serializable {
 		}
 		return outFile;
 	}
-	
-	public static void mergeFiles(ArrayList<File> files, File mergedFile) throws FileNotFoundException {
-		 
-		FileOutputStream out = new FileOutputStream(mergedFile);
-		for (File f : files) {
-			Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName());
-			FileInputStream inputStream = new FileInputStream(f);
-			byte buf[] = new byte[1024];
-			int len;
-			try {
-				while ((len = inputStream.read(buf)) != -1) {
-					out.write(buf, 0, len);
-				}
-				inputStream.close();
-			} catch (IOException e) {
-				Log.d(WiFiDirectActivity.TAG,"Merge error.");
-			}
-		}
-		Log.d(WiFiDirectActivity.TAG, "Merged file size :" + mergedFile.length());
-		try {
-			out.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public static void mergeFilesFromMap(HashMap<String, File> filesMap, File mergedFile) throws FileNotFoundException {
-		
-		OutputStream out = new FileOutputStream(mergedFile);
-		File[] files = new File[10]; // Max device number 10
-		int i = 0;
-		//Sort map to merge file
-		Map<String, File> treeMap = new TreeMap<String, File>(filesMap);
-		for (String str : treeMap.keySet()) {
-		    System.out.println(str);
-		    File f = treeMap.get(str);
-		
-		    Log.d(WiFiDirectActivity.TAG, "merging: " + f.getName() + " of Size - " + f.length());
-			InputStream inputStream = new FileInputStream(f);
-			byte buf[] = new byte[1024];
-			int len;
-			try {
-				while ((len = inputStream.read(buf)) != -1) {
-					out.write(buf, 0, len);
-				}
-				inputStream.close();
-			} catch (IOException e) {
-				Log.d(WiFiDirectActivity.TAG,"Merge error.");
-			}
-		}
-		
-		Log.d(WiFiDirectActivity.TAG, "Merged file size :" + mergedFile.length());
-		
-		try {
-			out.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 	
 	/**
 	 * Method to get the file contents into byte[] array

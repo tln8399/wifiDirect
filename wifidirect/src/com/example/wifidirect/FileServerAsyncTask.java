@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -34,9 +36,13 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	private Context context;
 	private TextView statusText;
 	public Util utilObject;
-	
-	private HashMap<String, byte[]> clientNamesAndFileContent = new HashMap<String, byte[]>();
-	
+	private ArrayList<InetAddress> clients = new ArrayList<InetAddress>(); 
+	private static HashMap<String, byte[]> clientNamesAndFileContent = new HashMap<String, byte[]>();
+	private static HashMap<String, Boolean> isDataReceivedFromClient = new HashMap<String, Boolean>();
+	private static HashMap<String, Boolean> isDataSentToClient = new HashMap<String, Boolean>();
+	private static HashMap<String, Device> peersInfo = new HashMap<String, Device>();
+	private static Boolean areAllClientsVisited = false;
+	private static Boolean areAllClientsReceivedData = false;
 	/**
 	 * @param context
 	 * @param statusText
@@ -50,11 +56,12 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	@Override
 	protected String doInBackground(Void... params) {
 		ServerSocket serverSocket = null;
-		Socket client = null;
+		Socket clientSocket = null;
 		ObjectOutputStream oos = null;
 		ObjectInputStream ois = null;
 		FileOutputStream outputStream = null;
-		try {
+		
+		try {			
 			
 			utilObject = new Util();// Create util object to set URL and content length
 			if(utilObject == null) {
@@ -62,51 +69,75 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			}
 			serverSocket = new ServerSocket(8988);
 			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
-			client = serverSocket.accept();
-			Log.d(WiFiDirectActivity.TAG, "Server: connection done");
 			
-			//Step 2 - Receive url request text
-			oos = new ObjectOutputStream(client.getOutputStream());
-			ois = new ObjectInputStream(client.getInputStream());
-			String clientName = (String) ois.readObject();
-			Log.d(WiFiDirectActivity.TAG, "Request received from client :" + clientName);
-						
-			oos.writeObject(utilObject.getURL());
-			oos.flush();
-			
-		//	PeerList peerList = new PeerList();
-		//	Log.d(WiFiDirectActivity.TAG, "Number of Peers discovered: " + PeerList.getPeerListSize());
-			
+			PeerList peerList = new PeerList();
+			Log.d(WiFiDirectActivity.TAG, "Number of Peers discovered: " + PeerList.getPeerListSize());
+			int numberOfDevices = PeerList.getPeerListSize();
 			//Set the range for all the peers including Server
-			utilObject.setRangeForDevices();
+			utilObject.setRangeForDevices(numberOfDevices);
+			//Add all peers to map with unvisited status
+			for(WifiP2pDevice device : PeerList.getPeerList()) {
+				isDataReceivedFromClient.put(device.deviceName, false);
+				Log.d(WiFiDirectActivity.TAG, device.deviceName + " " + isDataReceivedFromClient.get(device.deviceName));
+			}
+			areAllClientsVisited = checkAllClientsVisited(isDataReceivedFromClient);			
+			
+			while(!(checkAllClientsVisited(isDataReceivedFromClient))) {
+				// Connect to client
+				clientSocket = serverSocket.accept();
+				Log.d(WiFiDirectActivity.TAG, "Server: connection done");
+				Log.d(WiFiDirectActivity.TAG, "Client Address :" + clientSocket.getInetAddress() + " Port :" + clientSocket.getPort());
+				clients.add(clientSocket.getInetAddress());
+				//Step 2 - Receive url request text
+				oos = new ObjectOutputStream(clientSocket.getOutputStream());
+				ois = new ObjectInputStream(clientSocket.getInputStream());
+				Device client = (Device) ois.readObject();
+				Log.d(WiFiDirectActivity.TAG, "Request received from client :" + client.getName() +
+											  " Ip :" + client.getIpAddress() +
+											  " Port :" + client.getPort());
+				peersInfo.put(client.getName(), client);			
+				oos.writeObject(utilObject.getURL());
+				oos.flush();
+				
+				oos.writeObject(utilObject.rangeMap);
+				oos.flush();			
+				Thread.sleep(1000);
+				
+				byte[] clientFileContent = (byte[]) ois.readObject();
+				File clientFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) 
+						 				   + "/" + client.getName() + "part");
+				if(!clientFile.exists()) {
+					clientFile.createNewFile();
+					clientFile.canWrite();
+				}		
+				// Write content received from client into file
+				outputStream = new FileOutputStream(clientFile);
+				outputStream.write(clientFileContent);			
+				Log.d(WiFiDirectActivity.TAG, "Received file size :"+ clientFile.getName()+ "-" 
+					   + clientFile.length()+ "  copied file size: " + clientFile.length());
+		
+				// Add file content in map with client name
+				clientNamesAndFileContent.put(client.getName(), clientFileContent);
+				isDataReceivedFromClient.put(client.getName(), true);
+				oos.close();
+				ois.close();
+				clientSocket.close();
+				serverSocket.close();
+			}
+			
 			// Download the server video file
 			File serverPart = getServerPart(utilObject);
 			// get the file content into byte array
 			byte[] serverPartContent = Util.readFile(serverPart);
 			//Add server part content into map
-			clientNamesAndFileContent.put("D4", serverPartContent);
-			
-			oos.writeObject(utilObject.rangeMap);
-			oos.flush();			
-			Thread.sleep(1000);
-			
-			byte[] clientFileContent = (byte[]) ois.readObject();
-			File clientFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) 
-					 				   + "/" + clientName + "part");
-			if(!clientFile.exists()) {
-				clientFile.createNewFile();
-				clientFile.canWrite();
-			}		
-			// Write content received from client into file
-			outputStream = new FileOutputStream(clientFile);
-			outputStream.write(clientFileContent);			
-			Log.d(WiFiDirectActivity.TAG, "Received file size :"+ clientFile.getName()+ "-" 
-				   + clientFile.length()+ "  copied file size: " + clientFile.length());
-	
-			// Add file content in map with client name
-			clientNamesAndFileContent.put(clientName, clientFileContent);
+			clientNamesAndFileContent.put("D4", serverPartContent);			
 			// Get the sorted map values
 			Map<String, byte[]> sortedMap = getSortedMap(clientNamesAndFileContent);
+			
+			Socket newClientSocket = new Socket();
+			newClientSocket.connect(new InetSocketAddress(peersInfo.get("D2").getIpAddress(), 8988));
+			oos = new ObjectOutputStream(newClientSocket.getOutputStream());
+			ois = new ObjectInputStream(newClientSocket.getInputStream());
 			// Send map of client names and content to client
 			oos.writeObject(sortedMap);
 			oos.flush();
@@ -132,9 +163,9 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			e.printStackTrace();
 		} finally {
 			try {
-				serverSocket.close();
-				oos.close();
-				ois.close();
+			//	serverSocket.close();
+			//	oos.close();
+			//	ois.close();
 				outputStream.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -144,6 +175,22 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 		return null;
 	}
 
+	private Boolean checkAllClientsVisited(
+			HashMap<String, Boolean> isDataReceivedFromClient) {
+		// TODO Auto-generated method stub
+		for(String clientName : isDataReceivedFromClient.keySet()) {
+			if(isDataReceivedFromClient.get(clientName) == false) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Method that returns the sorted map
+	 * @param filesMap input HashMap
+	 * @return Map object
+	 */
 	private Map<String, byte[]> getSortedMap(HashMap<String, byte[]> filesMap) {
 		// TODO Auto-generated method stub
 		File[] files = new File[10]; // Max device number 10
