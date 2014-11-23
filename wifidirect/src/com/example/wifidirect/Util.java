@@ -89,8 +89,9 @@ public class Util implements Serializable {
 		URL url = getURL();
 		long contentLength = getUrlContentLength(url);
 		
-		rangeMap.put("D4", 0 + "-" + (contentLength/2));
-		rangeMap.put("D2", (contentLength/2)+1 + "-" + contentLength);
+		rangeMap.put("D2", 0 + "-" + (contentLength/2));
+		rangeMap.put("D4", (contentLength/2)+1 + "-" + (contentLength*(3/4)));
+		rangeMap.put("D1", (contentLength*(3/4))+1  + "-" + contentLength);
 	}
 
 	public File getFile() {

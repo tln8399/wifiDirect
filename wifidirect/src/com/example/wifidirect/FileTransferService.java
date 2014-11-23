@@ -123,7 +123,7 @@ public class FileTransferService extends IntentService implements Serializable {
 			//	}
 		
 				/*Open new socket to get the list of parts from server */
-				ServerSocket inputSocket = new ServerSocket(8988);
+				ServerSocket inputSocket = new ServerSocket(5000);
 				Socket tempSocket = inputSocket.accept();
 				ois = new ObjectInputStream(tempSocket.getInputStream());
 				oos = new ObjectOutputStream(tempSocket.getOutputStream());
