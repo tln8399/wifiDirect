@@ -63,7 +63,8 @@ public class Util implements Serializable {
 	}
 
 	public Util() throws MalformedURLException {
-		url = new URL("http://hindimobilevideos.com/load/Mp4%20Videos/2014%20Videos/Daawat-e-Ishq/Rangreli%20(Daawat-e-Ishq)%20_%20Bollywood%20Videos%20-%20Hindimobilevideos.com.mp4");
+		//url = new URL("http://hindimobilevideos.com/load/Mp4%20Videos/2014%20Videos/Daawat-e-Ishq/Rangreli%20(Daawat-e-Ishq)%20_%20Bollywood%20Videos%20-%20Hindimobilevideos.com.mp4");
+		url = new URL("https://archive.org/download/ksnn_compilation_master_the_internet/ksnn_compilation_master_the_internet_512kb.mp4");
 		//urlContentLength = getUrlContentLength(url);
 	}
 
@@ -89,10 +90,24 @@ public class Util implements Serializable {
 		URL url = getURL();
 		long contentLength = getUrlContentLength(url);
 		
-		rangeMap.put("D2", 0 + "-" + (contentLength/2));
-		rangeMap.put("D4", (contentLength/2)+1 + "-" + (contentLength*(3/4)));
-		rangeMap.put("D1", (contentLength*(3/4))+1  + "-" + contentLength);
-	}
+		//rangeMap.put("D4", 0 + "-" + (contentLength/2));
+		//rangeMap.put("D2", ((contentLength/2)+1) +"-"+contentLength);
+		
+		long sizeOfEachPart = contentLength / (numberOfDevices + 1); // +1 for group owner
+		for(int i = 0; i < (numberOfDevices+1); i++) {
+			if(i == numberOfDevices){ 
+				// In case of odd size, last device will download remaining content
+				rangeMap.put("D"+(i+1) , (sizeOfEachPart * i) + "-" + (contentLength-1));
+			}
+			else {
+				rangeMap.put("D"+(i+1) , (sizeOfEachPart * i) + "-" + ((sizeOfEachPart * (i+1))-1));
+			}
+		}
+		
+		for(String s : rangeMap.keySet()) {
+			Log.d(WiFiDirectActivity.TAG, s + " : " + rangeMap.get(s));
+   	 	}
+   	}
 
 	public File getFile() {
 		return outFile;

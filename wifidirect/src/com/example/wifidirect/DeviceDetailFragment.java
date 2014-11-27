@@ -189,7 +189,7 @@ public class DeviceDetailFragment extends Fragment implements
 		}
 		this.info = info;
 		this.getView().setVisibility(View.VISIBLE);
-
+		
 		// The owner IP is now known.
 		TextView view = (TextView) mContentView.findViewById(R.id.group_owner);
 		view.setText(getResources().getString(R.string.group_owner_text)

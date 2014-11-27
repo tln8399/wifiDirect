@@ -86,6 +86,9 @@ public class FileTransferService extends IntentService implements Serializable {
 										   socket.getLocalAddress(), 
 										   socket.getLocalPort());
 				Log.d(WiFiDirectActivity.TAG,"Client socket - " + socket.isConnected());
+				
+				long startTimeClient = System.currentTimeMillis();
+				
 				ois = new ObjectInputStream(socket.getInputStream());
 				oos = new ObjectOutputStream(socket.getOutputStream());
 				
@@ -142,6 +145,9 @@ public class FileTransferService extends IntentService implements Serializable {
 				OutputStream outputStream = new FileOutputStream(mergedFile);
 				outputStream.write(mergedByteArray);
 				Log.d(WiFiDirectActivity.TAG, "Resultant file size at client :" + mergedFile.length());
+				
+				long endTimeClient = System.currentTimeMillis();
+				Log.d(WiFiDirectActivity.TAG, " Total time at client : " + ((endTimeClient - startTimeClient) / 1000) + " Seconds");
 				
 			} catch (Exception e) {
 				Log.e(WiFiDirectActivity.TAG, " " + e.getMessage());

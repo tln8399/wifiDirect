@@ -43,6 +43,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	private static HashMap<String, Device> peersInfo = new HashMap<String, Device>();
 	private static Boolean areAllClientsVisited = false;
 	private static Boolean areAllClientsReceivedData = false;
+	private static String serverName = null;
 	/**
 	 * @param context
 	 * @param statusText
@@ -68,19 +69,22 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				Log.d(WiFiDirectActivity.TAG, "Util object is null.");
 			}
 			
-			PeerList peerList = new PeerList();
+			PeerList peerList = new PeerList(); // Constructor sets the static peer list
 			Log.d(WiFiDirectActivity.TAG, "Number of Peers discovered: " + PeerList.getPeerListSize());
 			int numberOfDevices = PeerList.getPeerListSize();
-			//Set the range for all the peers including Server
-			utilObject.setRangeForDevices(numberOfDevices);
+			
 			//Add all peers to map with unvisited status
 			for(WifiP2pDevice device : PeerList.getPeerList()) {
 				isDataReceivedFromClient.put(device.deviceName, false);
 				Log.d(WiFiDirectActivity.TAG, device.deviceName + " " + isDataReceivedFromClient.get(device.deviceName));
 			}
-			areAllClientsVisited = checkAllClientsVisited(isDataReceivedFromClient);			
+			//Set the range for all the peers including Server
+			utilObject.setRangeForDevices(numberOfDevices);
+			
 			serverSocket = new ServerSocket(8988);
-			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened");
+			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened..");
+			
+			long startTimeServer = System.currentTimeMillis();
 			
 			while(!(checkAllClientsVisited(isDataReceivedFromClient))) {
 				
@@ -90,6 +94,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				Log.d(WiFiDirectActivity.TAG, "Server: connection done");
 				Log.d(WiFiDirectActivity.TAG, "Client Address :" + clientSocket.getInetAddress() + " Port :" + clientSocket.getPort());
 				clients.add(clientSocket.getInetAddress());
+				
 				//Step 2 - Receive url request text
 				oos = new ObjectOutputStream(clientSocket.getOutputStream());
 				ois = new ObjectInputStream(clientSocket.getInputStream());
@@ -132,7 +137,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			// get the file content into byte array
 			byte[] serverPartContent = Util.readFile(serverPart);
 			//Add server part content into map
-			clientNamesAndFileContent.put("D2", serverPartContent);			
+			clientNamesAndFileContent.put(serverName, serverPartContent);			
 			// Get the sorted map values
 			Map<String, byte[]> sortedMap = getSortedMap(clientNamesAndFileContent);
 			
@@ -147,9 +152,13 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			outputStream.write(mergedByteArray);
 			Log.d(WiFiDirectActivity.TAG, "Resultant file size at server :" + mergedFile.length());
 			
+			long endTimeServer = System.currentTimeMillis();
+			Log.d(WiFiDirectActivity.TAG, " Total time at server : " + ((endTimeServer - startTimeServer) / 1000) + " Seconds");
+			
+			
 			return null;
 		} catch (IOException e) {
-			Log.e(WiFiDirectActivity.TAG, e.getMessage());
+			Log.d(WiFiDirectActivity.TAG, e.getMessage());
 			return null;
 		} catch (ClassNotFoundException e1) {
 			// TODO Auto-generated catch block
@@ -243,10 +252,18 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	 */
 	private File getServerPart(Util utilObject) {
 		HashMap<String, String> rangeMap = utilObject.getRangeMap();
-		String serverRange = (String) rangeMap.get("D4");
-		Log.d(WiFiDirectActivity.TAG, serverRange);
-		File serverPart = utilObject.downloadVideo(serverRange, utilObject.getURL(), "D4");
-		Log.d(WiFiDirectActivity.TAG, "Downloaded file size at Server :" + serverPart.length());
+		String[] deviceNames = {"D1", "D2", "D3", "D4", "D5"};
+		
+		for(int i = 0; i < (isDataReceivedFromClient.size()+1); i++) {
+			if(!isDataReceivedFromClient.containsKey(deviceNames[i])) {
+				serverName = deviceNames[i]; // static variable
+			}
+		}
+		String serverRange = (String) rangeMap.get(serverName);
+		Log.d(WiFiDirectActivity.TAG, "Server part range :" + serverRange);		
+		File serverPart = utilObject.downloadVideo(serverRange, utilObject.getURL(), serverName);
+		Log.d(WiFiDirectActivity.TAG, "Downloaded file part size at Server :" + serverPart.length());
+		
 		return serverPart;
 	}
 
