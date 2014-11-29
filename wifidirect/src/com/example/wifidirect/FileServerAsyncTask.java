@@ -159,7 +159,6 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			return null;
 		} catch (IOException e) {
 			Log.d(WiFiDirectActivity.TAG, e.getMessage());
-			return null;
 		} catch (ClassNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

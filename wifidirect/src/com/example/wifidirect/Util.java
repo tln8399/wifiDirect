@@ -137,27 +137,18 @@ public class Util implements Serializable {
 		
 		File outFile = null;
 		try {
-			//URL url = new URL(
-			//		"http://hindimobilevideos.com/load/Mp4%20Videos/2014%20Videos/Daawat-e-Ishq/Rangreli%20(Daawat-e-Ishq)%20_%20Bollywood%20Videos%20-%20Hindimobilevideos.com.mp4");
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("GET");
-			int lengthOfFile = 0;
-			/************** Logic to save a video file *********************************************/
-
-			int start = lengthOfFile / 2;
 			connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("GET");// HEAD
 			connection.setRequestProperty("Range", "bytes=" + range);
 			connection.setDoInput(true);
 			connection.setDoOutput(true);
 
-			Log.d(WiFiDirectActivity.TAG, " HTTP_PARTIAL Code: " + HttpURLConnection.HTTP_PARTIAL + " -  Response Code: "
-					+ connection.getResponseCode());
+			Log.d(WiFiDirectActivity.TAG, " HTTP_PARTIAL Code: " + HttpURLConnection.HTTP_PARTIAL 
+					                    + "  Response Code: " + connection.getResponseCode());
 			Log.d(WiFiDirectActivity.TAG, "Connected to URL.");
 
-			// set the path where we want to save the file
-			File SDCardRoot = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-	//		Log.d("MyMsgs", "file path :" + SDCardRoot.getAbsolutePath());
 			// create a new file, to save the downloaded file
 			outFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 							   + "/"+ device_name +"part");
@@ -166,25 +157,26 @@ public class Util implements Serializable {
 				outFile.createNewFile();
 				outFile.canWrite();
 			}
-			final int DOWNLOAD_BUFFER_SIZE = 1024;
 			FileOutputStream fileStream = new FileOutputStream(outFile.getAbsolutePath());
-			BufferedOutputStream outStream = new BufferedOutputStream(fileStream, DOWNLOAD_BUFFER_SIZE);
-			InputStream inStream = new BufferedInputStream(url.openStream());// ,
-																				// 8192);
+			InputStream inputStream = new BufferedInputStream(url.openStream());// , 8192);
 			byte[] buffer = new byte[1024];
-			int len1 = 0;
+			int length = 0;
 			int countInKB = 0;
 	//		Log.d(WiFiDirectActivity.TAG, " " + connection.getHeaderFields());
 	//		Log.d(WiFiDirectActivity.TAG,	"Get Content-Length :" + connection.getHeaderField("Content-Length"));
 			int expLength = Integer.parseInt(connection.getHeaderField("Content-Length"));
-			while ((len1 = inStream.read(buffer, 0, 1024)) > 0
-					&& countInKB < expLength) {
-				fileStream.write(buffer, 0, len1);
-				countInKB += len1;
+			
+			while ((length = inputStream.read(buffer, 0, 1024)) > 0 && countInKB < expLength) {
+				
+				if((countInKB+length) > expLength) {
+					length = expLength - countInKB;
+				}
+				fileStream.write(buffer, 0, length);
+				countInKB += length;
 			}
 			fileStream.close();
-			Log.d(WiFiDirectActivity.TAG, "Output file size :" + outFile.length());
-			//return outFile;
+			Log.d(WiFiDirectActivity.TAG, "Device " + device_name + " downloaded file of size :" + outFile.length());
+			
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 			Log.d(WiFiDirectActivity.TAG, "Exception 2");
