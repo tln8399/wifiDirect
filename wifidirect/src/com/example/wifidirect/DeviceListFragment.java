@@ -167,6 +167,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         view.setText(getDeviceStatus(device.status));
         //Set the device name in client object.
         FileTransferService.setDevicename(device.deviceName);
+        FileClientAsyncTask.setDevicename(device.deviceName);
     }
 
     @Override

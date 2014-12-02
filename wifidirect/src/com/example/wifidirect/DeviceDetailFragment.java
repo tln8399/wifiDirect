@@ -143,7 +143,7 @@ public class DeviceDetailFragment extends Fragment implements
 						 * startActivityForResult(intent,
 						 * CHOOSE_FILE_RESULT_CODE);
 						 */
-
+						
 						// Uri uri = data.getData();
 						TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
 						statusText.setText("Request for URL sent to Group Owner");
@@ -153,7 +153,13 @@ public class DeviceDetailFragment extends Fragment implements
 						// serviceIntent.putExtra(FileTransferService.EXTRAS_FILE_PATH, uri.toString());
 						serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_ADDRESS, info.groupOwnerAddress.getHostAddress());
 						serviceIntent.putExtra(FileTransferService.EXTRAS_GROUP_OWNER_PORT, 8988);
-						getActivity().startService(serviceIntent);
+						//getActivity().startService(serviceIntent);
+						
+						String GroupOwnerAddress = info.groupOwnerAddress.getHostAddress();
+						Log.d(WiFiDirectActivity.TAG, "Group Owner Address :" + GroupOwnerAddress);
+						FileClientAsyncTask.setGroupOwnerIP(GroupOwnerAddress);
+						new FileClientAsyncTask(GroupOwnerAddress, "8988", mContentView.findViewById(R.id.status_text)).execute();
+						
 
 					}
 				});
