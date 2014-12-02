@@ -1,20 +1,16 @@
 package com.example.wifidirect;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -39,10 +35,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	private ArrayList<InetAddress> clients = new ArrayList<InetAddress>(); 
 	private static HashMap<String, byte[]> clientNamesAndFileContent = new HashMap<String, byte[]>();
 	private static HashMap<String, Boolean> isDataReceivedFromClient = new HashMap<String, Boolean>();
-	private static HashMap<String, Boolean> isDataSentToClient = new HashMap<String, Boolean>();
 	private static HashMap<String, Device> peersInfo = new HashMap<String, Device>();
-	private static Boolean areAllClientsVisited = false;
-	private static Boolean areAllClientsReceivedData = false;
 	private static String serverName = null;
 	/**
 	 * @param context
@@ -53,21 +46,23 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 		this.statusText = (TextView) statusText;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	protected String doInBackground(Void... params) {
 		ServerSocket serverSocket = null;
 		Socket clientSocket = null;
 		ObjectOutputStream oos = null;
 		ObjectInputStream ois = null;
-		FileOutputStream outputStream = null;
 		
-		try {			
+		try {	
 			
-			utilObject = new Util();// Create util object to set URL and content length
+			// Create util object to set URL and content length
+			utilObject = new Util();
 			if(utilObject == null) {
 				Log.d(WiFiDirectActivity.TAG, "Util object is null.");
 			}
+			
+			// Wait till clients gets started
+			Thread.sleep(10000);
 			
 			PeerList peerList = new PeerList(); // Constructor sets the static peer list
 			Log.d(WiFiDirectActivity.TAG, "Number of Peers discovered: " + PeerList.getPeerListSize());
@@ -79,11 +74,9 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				Log.d(WiFiDirectActivity.TAG, device.deviceName + " " + isDataReceivedFromClient.get(device.deviceName));
 			}
 			//Set the range for all the peers including Server
-			utilObject.setRangeForDevices(numberOfDevices);
-			
+			utilObject.setRangeForDevices(numberOfDevices);			
 			serverSocket = new ServerSocket(8988);
-			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened..");
-			
+			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened..");			
 			long startTimeServer = System.currentTimeMillis();
 			
 			while(!(checkAllClientsVisited(isDataReceivedFromClient))) {
@@ -108,28 +101,15 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				
 				oos.writeObject(utilObject.rangeMap);
 				oos.flush();			
-				Thread.sleep(1000);
-				
+				Thread.sleep(1000);				
 				byte[] clientFileContent = (byte[]) ois.readObject();
-				File clientFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) 
-						 				   + "/" + client.getName() + "part");
-				if(!clientFile.exists()) {
-					clientFile.createNewFile();
-					clientFile.canWrite();
-				}		
-				// Write content received from client into file
-				outputStream = new FileOutputStream(clientFile);
-				outputStream.write(clientFileContent);			
-				Log.d(WiFiDirectActivity.TAG, "Received file size :"+ clientFile.getName()+ "-" 
-					   + clientFile.length()+ "  copied file size: " + clientFile.length());
-		
+				Log.d(WiFiDirectActivity.TAG, "Client " + client.getName() + " part size :" + clientFileContent.length);
 				// Add file content in map with client name
 				clientNamesAndFileContent.put(client.getName(), clientFileContent);
 				isDataReceivedFromClient.put(client.getName(), true);
 				oos.close();
 				ois.close();
 				clientSocket.close();
-			//	serverSocket.close();
 			}
 			
 			// Download the server video file
@@ -138,74 +118,90 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			byte[] serverPartContent = Util.readFile(serverPart);
 			//Add server part content into map
 			clientNamesAndFileContent.put(serverName, serverPartContent);			
-			// Get the sorted map values
-			Map<String, byte[]> sortedMap = getSortedMap(clientNamesAndFileContent);
-			
-			sendResultMapToAllPeers(sortedMap, peersInfo);				
-			
+			sendResultMapToAllPeers(clientNamesAndFileContent, peersInfo);										
 			// Get the merged File
-			File mergedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/mergedFile.mp4");
-			Log.d(WiFiDirectActivity.TAG, "File path :" + mergedFile.getAbsolutePath());
-			byte[] mergedByteArray = Util.mergeContents(sortedMap);
-			Log.d(WiFiDirectActivity.TAG, "Merged byte array size at Server :" + mergedByteArray.length);
-			outputStream = new FileOutputStream(mergedFile);
-			outputStream.write(mergedByteArray);
-			Log.d(WiFiDirectActivity.TAG, "Resultant file size at server :" + mergedFile.length());
-			
+			long fileSizeAtServer = mergeMapContentsAtServer(clientNamesAndFileContent);
+						
 			long endTimeServer = System.currentTimeMillis();
-			Log.d(WiFiDirectActivity.TAG, " Total time at server : " + ((endTimeServer - startTimeServer) / 1000) + " Seconds");
+			Log.d(WiFiDirectActivity.TAG, " Total time at server : " + ((endTimeServer - startTimeServer) / 1000) + " Seconds");			
 			
+			return fileSizeAtServer+""; // Converting to String to display on screen
 			
-			return null;
 		} catch (IOException e) {
 			Log.d(WiFiDirectActivity.TAG, e.getMessage());
 		} catch (ClassNotFoundException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			try {
 				serverSocket.close();
-			//	oos.close();
-			//	ois.close();
-			//	outputStream.close();
+				oos.close();
+				ois.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		return null;
 	}
 	
+	/**
+	 * Method get sorted map as intput and merges all parts into one file
+	 * @param sortedMap
+	 * @return 
+	 * @throws IOException 
+	 */
+	private long mergeMapContentsAtServer(HashMap<String, byte[]> contentMap) throws IOException {
+		
+		File mergedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) 
+								   + "/mergedFile.mp4");
+		
+		// Get the sorted map values
+		Map<String, byte[]> sortedMap = Util.getSortedMap(contentMap);						
+		
+		byte[] mergedByteArray = Util.mergeContents(sortedMap);
+		Log.d(WiFiDirectActivity.TAG, "Merged byte array size at Server :" + mergedByteArray.length);
+		@SuppressWarnings("resource")
+		FileOutputStream outputStream = new FileOutputStream(mergedFile);
+		outputStream.write(mergedByteArray);
+		Log.d(WiFiDirectActivity.TAG, "Resultant file size at server :" + mergedFile.length());
+		return mergedByteArray.length;
+	}
 
 	/**
 	 * Method that connects with all the peers one at a time and
 	 * sends map that contains the video part downloaded by all other
 	 * peers.	
-	 * @param sortedMap map that contains peer and its content 
+	 * @param contentMap map that contains peer and its content 
 	 * @param peersInfo2 map contains the peer info i.e. name, Ip and port 
 	 */
-	private void sendResultMapToAllPeers(Map<String, byte[]> sortedMap,
+	private void sendResultMapToAllPeers(HashMap<String, byte[]> contentMap,
 										 HashMap<String, Device> peersInfo) {
 		
 		ObjectOutputStream oos = null;
 		ObjectInputStream ois = null;
 		for(String peer : peersInfo.keySet()) {
-						
+			// Put the map data in new map
+			HashMap<String, byte[]> newMap = new HashMap<String, byte[]>();
+			newMap.putAll(contentMap);
+			// remove the entry of peer to whom map is to be sent
+			newMap.remove(peer);
+			Log.d(WiFiDirectActivity.TAG, "Soreted map size:"+ contentMap.size() +"  new Map size:" + newMap.size());
 			Socket newClientSocket = new Socket();
 			try {
 				newClientSocket.connect(new InetSocketAddress(peersInfo.get(peer).getIpAddress(), 5000));
 				oos = new ObjectOutputStream(newClientSocket.getOutputStream());
 				ois = new ObjectInputStream(newClientSocket.getInputStream());
 				// Send map of client names and content to client
-				oos.writeObject(sortedMap);
+				oos.writeObject(newMap);
 				oos.flush();
 				newClientSocket.close();
+				oos.close();
+				ois.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			newMap.clear();
 		}
 	}
 
@@ -225,24 +221,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 		return true;
 	}
 
-	/**
-	 * Method that returns the sorted map
-	 * @param filesMap input HashMap
-	 * @return Map object
-	 */
-	private Map<String, byte[]> getSortedMap(HashMap<String, byte[]> filesMap) {
-		
-		File[] files = new File[10]; // Max device number 10
-		int i = 0;
-		//Sort map to merge file
-		Map<String, byte[]> treeMap = new TreeMap<String, byte[]>(filesMap);
-		
-		for(String str : treeMap.keySet()) {
-			Log.d(WiFiDirectActivity.TAG, str + " " + str.charAt(1));
-		}
-		
-		return treeMap;
-	}
+	
 
 	/**
 	 * Method downloads the server's video part and adds to the map
@@ -274,8 +253,9 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	@Override
 	protected void onPostExecute(String result) {
 		if (result != null) {
-			statusText.setText("File copied - " + result);
+			statusText.setText("Size of file merged at Server - " + result);
 			Intent intent = new Intent();
+			//intent.se
 			// intent.setAction(android.content.Intent.ACTION_VIEW);
 			// intent.setDataAndType(Uri.parse("file://" + result), "image/*");
 			// context.startActivity(intent);

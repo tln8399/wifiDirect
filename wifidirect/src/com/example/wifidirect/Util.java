@@ -38,6 +38,7 @@ import org.apache.http.client.ClientProtocolException;
 
 
 
+
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Environment;
@@ -92,12 +93,12 @@ public class Util implements Serializable {
 		
 		//rangeMap.put("D4", 0 + "-" + (contentLength/2));
 		//rangeMap.put("D2", ((contentLength/2)+1) +"-"+contentLength);
-		
+		Log.d(WiFiDirectActivity.TAG, "Content Length :" + contentLength);
 		long sizeOfEachPart = contentLength / (numberOfDevices + 1); // +1 for group owner
 		for(int i = 0; i < (numberOfDevices+1); i++) {
 			if(i == numberOfDevices){ 
 				// In case of odd size, last device will download remaining content
-				rangeMap.put("D"+(i+1) , (sizeOfEachPart * i) + "-" + (contentLength-1));
+				rangeMap.put("D"+(i+1) , (sizeOfEachPart * i) + "-");
 			}
 			else {
 				rangeMap.put("D"+(i+1) , (sizeOfEachPart * i) + "-" + ((sizeOfEachPart * (i+1))-1));
@@ -232,4 +233,20 @@ public class Util implements Serializable {
 		return outputStream.toByteArray();
 	}
 	
+	/**
+	 * Method that returns the sorted map
+	 * @param filesMap input HashMap
+	 * @return Map object
+	 */
+	public static Map<String, byte[]> getSortedMap(HashMap<String, byte[]> filesMap) {
+		
+		//Sort map to merge file
+		Map<String, byte[]> treeMap = new TreeMap<String, byte[]>(filesMap);
+		
+		for(String str : treeMap.keySet()) {
+			Log.d(WiFiDirectActivity.TAG, str + " " + str.charAt(1));
+		}
+		
+		return treeMap;
+	}
 }

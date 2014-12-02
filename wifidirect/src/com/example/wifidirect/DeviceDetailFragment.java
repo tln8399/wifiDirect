@@ -146,7 +146,7 @@ public class DeviceDetailFragment extends Fragment implements
 
 						// Uri uri = data.getData();
 						TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
-						// statusText.setText("Sending: " + uri);
+						statusText.setText("Request for URL sent to Group Owner");
 						// Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
 						Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
 						serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
