@@ -16,6 +16,7 @@ import java.util.TreeMap;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -76,8 +77,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			//Set the range for all the peers including Server
 			utilObject.setRangeForDevices(numberOfDevices);			
 			serverSocket = new ServerSocket(8988);
-			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened..");			
-			long startTimeServer = System.currentTimeMillis();
+			Log.d(WiFiDirectActivity.TAG, "Server: Socket opened..");
 			
 			while(!(checkAllClientsVisited(isDataReceivedFromClient))) {
 				
@@ -86,8 +86,8 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				clientSocket = serverSocket.accept();
 				Log.d(WiFiDirectActivity.TAG, "Server: connection done");
 				Log.d(WiFiDirectActivity.TAG, "Client Address :" + clientSocket.getInetAddress() + " Port :" + clientSocket.getPort());
-				clients.add(clientSocket.getInetAddress());
-				
+				clients.add(clientSocket.getInetAddress());				
+								
 				//Step 2 - Receive url request text
 				oos = new ObjectOutputStream(clientSocket.getOutputStream());
 				ois = new ObjectInputStream(clientSocket.getInputStream());
@@ -101,7 +101,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				
 				oos.writeObject(utilObject.rangeMap);
 				oos.flush();			
-				Thread.sleep(1000);				
+				//Thread.sleep(1000);				
 				byte[] clientFileContent = (byte[]) ois.readObject();
 				Log.d(WiFiDirectActivity.TAG, "Client " + client.getName() + " part size :" + clientFileContent.length);
 				// Add file content in map with client name
@@ -112,12 +112,14 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 				clientSocket.close();
 			}
 			
+			long startTimeServer = System.currentTimeMillis();
+			
 			// Download the server video file
-			File serverPart = getServerPart(utilObject);
+			byte[] serverContent = getServerPart(utilObject);
 			// get the file content into byte array
-			byte[] serverPartContent = Util.readFile(serverPart);
+			//byte[] serverPartContent = Util.readFile(serverPart);
 			//Add server part content into map
-			clientNamesAndFileContent.put(serverName, serverPartContent);			
+			clientNamesAndFileContent.put(serverName, serverContent);			
 			sendResultMapToAllPeers(clientNamesAndFileContent, peersInfo);										
 			// Get the merged File
 			long fileSizeAtServer = mergeMapContentsAtServer(clientNamesAndFileContent);
@@ -125,7 +127,8 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 			long endTimeServer = System.currentTimeMillis();
 			Log.d(WiFiDirectActivity.TAG, " Total time at server : " + ((endTimeServer - startTimeServer) / 1000) + " Seconds");			
 			
-			return fileSizeAtServer+""; // Converting to String to display on screen
+			String result = "File Size: Downloaded-"+ serverContent.length+ " Merged-"+fileSizeAtServer;
+			return result; // Converting to String to display on screen
 			
 		} catch (IOException e) {
 			Log.d(WiFiDirectActivity.TAG, e.getMessage());
@@ -228,7 +231,7 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	 * @param utilObject2 - object which has range parameters
 	 * @return File object - contains the video part downloaded by Server
 	 */
-	private File getServerPart(Util utilObject) {
+	private byte[] getServerPart(Util utilObject) {
 		HashMap<String, String> rangeMap = utilObject.getRangeMap();
 		String[] deviceNames = {"D1", "D2", "D3", "D4", "D5"};
 		
@@ -239,10 +242,20 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 		}
 		String serverRange = (String) rangeMap.get(serverName);
 		Log.d(WiFiDirectActivity.TAG, "Server part range :" + serverRange);		
-		File serverPart = utilObject.downloadVideo(serverRange, utilObject.getURL(), serverName);
-		Log.d(WiFiDirectActivity.TAG, "Downloaded file part size at Server :" + serverPart.length());
+		byte[] serverContent = utilObject.downloadVideo(serverRange, utilObject.getURL(), serverName);
+		Log.d(WiFiDirectActivity.TAG, "Downloaded file part size at Server :" + serverContent.length);
 		
-		return serverPart;
+		return serverContent;
+	}
+	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.os.AsyncTask#onPreExecute()
+	 */
+	@Override
+	protected void onPreExecute() {
+		statusText.setText("Opening a server socket");
 	}
 
 	/*
@@ -253,25 +266,13 @@ public class FileServerAsyncTask extends AsyncTask<Void, Void, String> {
 	@Override
 	protected void onPostExecute(String result) {
 		if (result != null) {
-			statusText.setText("Size of file merged at Server - " + result);
-			Intent intent = new Intent();
-			//intent.se
-			// intent.setAction(android.content.Intent.ACTION_VIEW);
-			// intent.setDataAndType(Uri.parse("file://" + result), "image/*");
-			// context.startActivity(intent);
+			
+			statusText.setText(result);
 		}
 
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see android.os.AsyncTask#onPreExecute()
-	 */
-	@Override
-	protected void onPreExecute() {
-		statusText.setText("Opening a server socket");
-	}
+	
 
 	
 

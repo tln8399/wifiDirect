@@ -66,7 +66,6 @@ public class Util implements Serializable {
 	public Util() throws MalformedURLException {
 		//url = new URL("http://hindimobilevideos.com/load/Mp4%20Videos/2014%20Videos/Daawat-e-Ishq/Rangreli%20(Daawat-e-Ishq)%20_%20Bollywood%20Videos%20-%20Hindimobilevideos.com.mp4");
 		url = new URL("https://archive.org/download/ksnn_compilation_master_the_internet/ksnn_compilation_master_the_internet_512kb.mp4");
-		//urlContentLength = getUrlContentLength(url);
 	}
 
 	public long getUrlContentLength(URL url) {
@@ -134,9 +133,11 @@ public class Util implements Serializable {
 		return rangeMap;
 	}
 
-	public File downloadVideo(String range, URL url, String device_name) {
+	public byte[] downloadVideo(String range, URL url, String device_name) {
 		
 		File outFile = null;
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		
 		try {
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			connection.setRequestMethod("GET");
@@ -161,6 +162,7 @@ public class Util implements Serializable {
 			FileOutputStream fileStream = new FileOutputStream(outFile.getAbsolutePath());
 			InputStream inputStream = new BufferedInputStream(url.openStream());// , 8192);
 			byte[] buffer = new byte[1024];
+			
 			int length = 0;
 			int countInKB = 0;
 	//		Log.d(WiFiDirectActivity.TAG, " " + connection.getHeaderFields());
@@ -172,11 +174,11 @@ public class Util implements Serializable {
 				if((countInKB+length) > expLength) {
 					length = expLength - countInKB;
 				}
-				fileStream.write(buffer, 0, length);
+				outputStream.write(buffer, 0, length);
 				countInKB += length;
 			}
 			fileStream.close();
-			Log.d(WiFiDirectActivity.TAG, "Device " + device_name + " downloaded file of size :" + outFile.length());
+			Log.d(WiFiDirectActivity.TAG, "Device " + device_name + " downloaded file of size :" + outputStream.size());
 			
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
@@ -185,7 +187,7 @@ public class Util implements Serializable {
 			e.printStackTrace();
 			Log.d(WiFiDirectActivity.TAG, "Exception 3");
 		}
-		return outFile;
+		return outputStream.toByteArray();
 	}
 	
 	/**

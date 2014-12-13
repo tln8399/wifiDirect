@@ -115,10 +115,9 @@ public class DeviceDetailFragment extends Fragment implements
 					public void onClick(View v) {
 						VideoView vidView = (VideoView) mContentView
 								.findViewById(R.id.myVideo);
-						// String vidAddress =
-						// Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+
-						// "/newVideo.mp4";
-						// Uri vidUri = Uri.parse(vidAddress);
+						 //String vidAddress = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+
+						 //		 															"/mergedFile.mp4";
+						 //Uri vidUri = Uri.parse(vidAddress);
 
 						// vidView.setVideoURI(vidUri);
 						// vidView.start();
@@ -161,6 +160,22 @@ public class DeviceDetailFragment extends Fragment implements
 						new FileClientAsyncTask(GroupOwnerAddress, "8988", mContentView.findViewById(R.id.status_text)).execute();
 						
 
+					}
+				});
+		
+		mContentView.findViewById(R.id.btn_play_video).setOnClickListener(
+				new View.OnClickListener() {
+
+					@Override
+					public void onClick(View v) {
+						VideoView vidView = (VideoView) mContentView
+								.findViewById(R.id.myVideo);
+						String vidAddress = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+
+								 															"/mergedFile.mp4";
+						Uri vidUri = Uri.parse(vidAddress);
+						vidView.setVideoURI(vidUri);
+						vidView.start();
+						
 					}
 				});
 
@@ -211,8 +226,8 @@ public class DeviceDetailFragment extends Fragment implements
 		// server. The file server is single threaded, single connection server
 		// socket.
 		if (info.groupFormed && info.isGroupOwner) {
-			mContentView.findViewById(R.id.btn_start_client).setVisibility(
-					View.VISIBLE);
+			//mContentView.findViewById(R.id.btn_start_client).setVisibility(
+			//		View.VISIBLE);
 			new FileServerAsyncTask(getActivity(),mContentView.findViewById(R.id.status_text)).execute();
 		} else if (info.groupFormed) {
 			// The other device acts as the client. In this case, we enable the
@@ -226,6 +241,9 @@ public class DeviceDetailFragment extends Fragment implements
 
 		// hide the connect button
 		mContentView.findViewById(R.id.btn_connect).setVisibility(View.GONE);
+		// show Play button		
+		//mContentView.findViewById(R.id.btn_play_video).setVisibility(View.VISIBLE);
+
 	}
 
 	/**
@@ -250,8 +268,7 @@ public class DeviceDetailFragment extends Fragment implements
 	 * Clears the UI fields after a disconnect or direct mode disable operation.
 	 */
 	public void resetViews() {
-		Log.d("MyMsgs", "Paly Video button was clicked.");
-
+		
 		mContentView.findViewById(R.id.btn_connect).setVisibility(View.VISIBLE);
 		TextView view = (TextView) mContentView
 				.findViewById(R.id.device_address);
@@ -265,23 +282,6 @@ public class DeviceDetailFragment extends Fragment implements
 		mContentView.findViewById(R.id.btn_start_client).setVisibility(
 				View.GONE);
 		this.getView().setVisibility(View.GONE);
-	}
-
-	public static boolean copyFile(InputStream inputStream, OutputStream out) {
-		byte buf[] = new byte[1024];
-		int len;
-		try {
-			while ((len = inputStream.read(buf)) != -1) {
-				out.write(buf, 0, len);
-
-			}
-			out.close();
-			inputStream.close();
-		} catch (IOException e) {
-			Log.d(WiFiDirectActivity.TAG, e.toString());
-			return false;
-		}
-		return true;
 	}
 
 }

@@ -5,7 +5,7 @@
     <string name="discover_peers_button">Discover</string>
     <string name="connect_peer_button">Connect</string>
     <string name="disconnect_peer_button">Disconnect</string>
-    <string name="get_file_button">Download Video Segment</string>
+    <string name="get_file_button">Get URL</string>
     <string name="get_file_button_server">Launch Gallery Server</string>
     <string name="empty"></string>
     <string name="yes">yes</string>
@@ -17,4 +17,5 @@
     <string name="label_me">ME</string>
     <string name="label_peers">PEERS</string>
     <string name="url_request">Request for URL sent</string>
+    <string name="play_video_button">Play</string>
 </resources>

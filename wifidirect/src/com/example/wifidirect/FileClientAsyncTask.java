@@ -56,6 +56,7 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 		Socket socket = new Socket();
 		int port = Integer.parseInt(EXTRAS_GROUP_OWNER_PORT);
 		long sizeOfFile = 0;
+		String result = "";
 		try {
 			
 			Util utilObj = new Util();
@@ -68,7 +69,6 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 									   socket.getLocalPort());
 			Log.d(WiFiDirectActivity.TAG,"Client socket - " + socket.isConnected());
 			
-			long startTimeClient = System.currentTimeMillis();
 			
 			ois = new ObjectInputStream(socket.getInputStream());
 			oos = new ObjectOutputStream(socket.getOutputStream());
@@ -92,12 +92,18 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 			HashMap<String, String> rangeMap = (HashMap<String, String>) ois.readObject();
 			String d2Range = (String) rangeMap.get(device_name);
 			Log.d(WiFiDirectActivity.TAG, d2Range);
+			
+			long startTimeClient1 = System.currentTimeMillis();
+			
 			// Download video part for given range
-			File toBeSend = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
-			Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
-			Thread.sleep(1000);
+			byte[] content = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
+			
+			long endTimeClient1 = System.currentTimeMillis();
+			long time1 = (endTimeClient1 - startTimeClient1) / 1000;
+			//Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
+			//Thread.sleep(1000);
 			// call readFile method to get content of file into byte[] array  
-			byte[] content = Util.readFile(toBeSend);
+			//byte[] content = Util.readFile(toBeSend);
 			oos.writeObject(content);
 			oos.flush();		
 			
@@ -125,13 +131,16 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 				Log.d(WiFiDirectActivity.TAG, str + " " + str.charAt(1));
 			}
 			
+			long startTimeClient2 = System.currentTimeMillis();
+						
 			// Get the merged File - call to local method
 			sizeOfFile = mergeMapContentsAtClient(sortedMap);				
 			
-			long endTimeClient = System.currentTimeMillis();
-			Log.d(WiFiDirectActivity.TAG, " Total time at client : " + ((endTimeClient - startTimeClient) / 1000) + " Seconds");
+			long endTimeClient2 = System.currentTimeMillis();
+			long time2 = (endTimeClient2 - startTimeClient2) / 1000;
+			Log.d(WiFiDirectActivity.TAG, " Total time at client : " + (time1+time2) +" Seconds");
 			
-			
+			result = "File Size: Downloaded-"+ content.length+ " Merged-"+sizeOfFile;
 			
 		} catch (Exception e) {
 			Log.e(WiFiDirectActivity.TAG, " " + e.getMessage());
@@ -145,7 +154,9 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 			}
 		}
 		
-		return sizeOfFile+"";
+		
+		
+		return result;
 	}
 	
 	/**
@@ -173,7 +184,7 @@ public class FileClientAsyncTask extends AsyncTask<Void, Void, String>{
 	@Override
 	protected void onPostExecute(String result) {
 		if (result != null) {
-			statusText.setText("Size of file merged at Client - " + result);
+			statusText.setText(result);
 			Intent intent = new Intent();
 			//intent.se
 			// intent.setAction(android.content.Intent.ACTION_VIEW);

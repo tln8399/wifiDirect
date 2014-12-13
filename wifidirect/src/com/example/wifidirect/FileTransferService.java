@@ -105,11 +105,11 @@ public class FileTransferService extends IntentService implements Serializable {
 				String d2Range = (String) rangeMap.get(device_name);
 				Log.d(WiFiDirectActivity.TAG, d2Range);
 				// Download video part for given range
-				File toBeSend = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
-				Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
-				Thread.sleep(1000);
+				byte[] content = utilObj.downloadVideo(d2Range, utilObjectUrl, device_name);
+				//Log.d(WiFiDirectActivity.TAG, "Downloaded file :" + toBeSend.length() + toBeSend.getName());
+				//Thread.sleep(1000);
 				// call readFile method to get content of file into byte[] array  
-				byte[] content = Util.readFile(toBeSend);
+				//byte[] content = Util.readFile(toBeSend);
 				oos.writeObject(content);
 				oos.flush();		
 				
